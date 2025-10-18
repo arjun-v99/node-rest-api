@@ -18,8 +18,10 @@
   },
   "homepage": "https://github.com/arjun-v99/node-rest-api#readme",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "express-validator": "^5.3.0"
+    "express-validator": "^5.3.0",
+    "mongoose": "^8.19.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
