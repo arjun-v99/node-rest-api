@@ -1,10 +1,16 @@
+require("dotenv").config();
+
+const path = require("path");
+
 const express = require("express");
+const mongoose = require("mongoose");
 
 const feedRoutes = require("./routes/feed");
 
 const app = express();
 
 app.use(express.json());
+app.use("/images", express.static(path.join(__dirname, "images")));
 
 // Setting up CORS
 app.use((req, res, next) => {
@@ -19,4 +25,13 @@ app.use((req, res, next) => {
 
 app.use("/feed", feedRoutes);
 
-app.listen(8080);
+app.use((error, req, res, next) => {
+  console.log(error);
+  const statusCode = error.statusCode;
+  const message = error.message;
+  res.status(statusCode).json({ message: message });
+});
+
+mongoose.connect(process.env.MONGODB_URL).then(() => {
+  app.listen(8080);
+});
