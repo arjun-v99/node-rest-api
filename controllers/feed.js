@@ -1,7 +1,4 @@
-const {
-  validationCheck,
-  validationResult,
-} = require("express-validator/check");
+const { validationResult } = require("express-validator/check");
 const path = require("path");
 const fs = require("fs");
 
