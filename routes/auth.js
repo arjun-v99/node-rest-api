@@ -31,6 +31,17 @@ router.post("/login", authController.logIn);
 
 router.get("/status", authMiddleware, authController.getStatus);
 
-router.patch("/status/", authMiddleware, authController.updateStatus);
+router.patch(
+  "/status/",
+  authMiddleware,
+  [
+    body("status")
+      .trim()
+      .not()
+      .isEmpty()
+      .withMessage("Status cannot be set to empty"),
+  ],
+  authController.updateStatus
+);
 
 module.exports = router;
