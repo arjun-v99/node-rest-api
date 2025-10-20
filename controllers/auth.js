@@ -78,3 +78,51 @@ exports.logIn = (req, res, next) => {
       next(err);
     });
 };
+
+exports.getStatus = (req, res, next) => {
+  const userId = req.userId;
+  User.findById(userId)
+    .then((user) => {
+      if (!user) {
+        const error = new Error("No user found");
+        error.statusCode = 422;
+        throw error;
+      }
+      return res.status(200).json({ userId: userId, status: user.status });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
+};
+
+exports.updateStatus = (req, res, next) => {
+  const userId = req.userId;
+  const status = req.body.status;
+  console.log(status);
+  User.findById(userId)
+    .then((user) => {
+      if (!user) {
+        const error = new Error("No user found");
+        error.statusCode = 404;
+        throw error;
+      }
+
+      user.status = status;
+      return user.save();
+    })
+    .then((result) => {
+      return res.status(200).json({
+        message: "Status updated successfully",
+        status: result,
+      });
+    })
+    .catch((err) => {
+      if (!err.statusCode) {
+        err.statusCode = 500;
+      }
+      next(err);
+    });
+};
