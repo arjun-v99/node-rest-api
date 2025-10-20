@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator/check");
 const path = require("path");
 const fs = require("fs");
 
+const io = require("../socket");
 const Post = require("../models/post");
 const User = require("../models/user");
 
@@ -11,6 +12,8 @@ exports.getPosts = async (req, res, next) => {
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
+      .populate("creator")
+      .sort({ createdAt: -1 })
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
 
@@ -56,6 +59,11 @@ exports.createPosts = async (req, res, next) => {
     const userById = await User.findById(req.userId);
     userById.posts.push(post);
     await userById.save();
+
+    io.getIo().emit("posts", {
+      action: "create",
+      post: { ...post._doc, creator: { id: req.userId, name: userById.name } },
+    });
 
     res.status(201).json({
       message: "Post created successfully",
@@ -116,13 +124,20 @@ exports.updatePost = async (req, res, next) => {
   }
 
   try {
-    const findPost = await Post.findById(postId);
+    const findPost = await Post.findById(postId).populate("creator");
     if (!findPost) {
       // If you throw an error inside a then() block, it will trigger the next catch() block
       const error = new Error("Post was not found");
       error.statusCode = 404;
       throw error;
     }
+
+    if (findPost.creator._id.toString() !== req.userId) {
+      const error = new Error("Not Authorized");
+      error.statusCode = 403;
+      throw error;
+    }
+
     // Uploaded image are db value are not same. so we remove file specified in db from our server.
     if (imageUrl !== findPost.imageUrl) {
       clearImage(findPost.imageUrl);
@@ -133,6 +148,11 @@ exports.updatePost = async (req, res, next) => {
     findPost.content = content;
 
     const updateResult = await findPost.save();
+
+    io.getIo().emit("posts", {
+      action: "update",
+      post: updateResult,
+    });
 
     return res
       .status(200)
@@ -148,11 +168,17 @@ exports.updatePost = async (req, res, next) => {
 exports.deletePost = async (req, res, next) => {
   const postId = req.params.postId;
   try {
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate("creator");
     if (!post) {
       // If you throw an error inside a then() block, it will trigger the next catch() block
       const error = new Error("Post was not found");
       error.statusCode = 404;
+      throw error;
+    }
+
+    if (post.creator._id.toString() !== req.userId) {
+      const error = new Error("Not Authorized");
+      error.statusCode = 403;
       throw error;
     }
 
@@ -162,6 +188,11 @@ exports.deletePost = async (req, res, next) => {
     const findUser = await User.findById(req.userId);
     findUser.posts.pull(postId);
     await findUser.save();
+
+    io.getIo().emit("posts", {
+      action: "delete",
+      post: postId,
+    });
 
     return res.status(200).json({ message: "Post deleted successfully" });
   } catch (err) {

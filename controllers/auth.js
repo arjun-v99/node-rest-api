@@ -37,10 +37,9 @@ exports.signUp = async (req, res, next) => {
 };
 
 exports.logIn = async (req, res, next) => {
+  const email = req.body.email;
+  const password = req.body.password;
   try {
-    const email = req.body.email;
-    const password = req.body.password;
-
     const findUser = await User.findOne({ email: email });
     if (!findUser) {
       const error = new Error("User not found");
